@@ -39,7 +39,7 @@ def create_template_ini_file():
             f.write('organization_id=\n')
             f.write('secret_key=\n')
 
-        print('OpenAI API config file created at {}'.format(API_KEYS_LOCATION))
+        print(f'OpenAI API config file created at {API_KEYS_LOCATION}')
         print('Please edit it and add your organization ID and secret key')
         print('If you do not yet have an organization ID and secret key, you\n'
                'need to register for OpenAI Codex: \n'
@@ -67,12 +67,10 @@ def create_input_prompt(length=3000):
     # Reverse sorted files.
     files_sorted_by_mod_date = files_sorted_by_mod_date[::-1]
     for filename in files_sorted_by_mod_date:
-        # Check if file is a image file.
-        is_image_file = False
-        for extension in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg']:
-            if filename.endswith(extension):
-                is_image_file = True
-                break
+        is_image_file = any(
+            filename.endswith(extension)
+            for extension in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg']
+        )
         if filename not in FILES_NOT_TO_INCLUDE and not filename.startswith('.') \
                 and not os.path.isdir(filename) and not is_image_file:
             with open(filename) as f:
@@ -87,8 +85,14 @@ def create_input_prompt(length=3000):
 
 
 def generate_completion(input_prompt, num_tokens):
-    response = openai.Completion.create(engine='code-davinci-001', prompt=input_prompt, temperature=0.5, max_tokens=num_tokens, stream=STREAM, stop='===================\n')
-    return response
+    return openai.Completion.create(
+        engine='code-davinci-001',
+        prompt=input_prompt,
+        temperature=0.5,
+        max_tokens=num_tokens,
+        stream=STREAM,
+        stop='===================\n',
+    )
 
 
 def generate_completion_chatgpt(input_prompt, num_tokens):
@@ -97,13 +101,11 @@ def generate_completion_chatgpt(input_prompt, num_tokens):
             'content': input_prompt}
             ]
 
-    response = openai.ChatCompletion.create(
+    return openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         max_tokens=num_tokens,
-      messages=messages,
+        messages=messages,
     )
-
-    return response
 
 
 def clear_screen_and_display_generated_readme(response):
@@ -146,7 +148,7 @@ def save_readme(readme_text):
     '''
     if os.path.isfile('README.md'):
         answer = input('A README.md already exists. Do you want to overwrite it? [y/N] ')
-        if answer == '' or answer == 'n' or answer == 'N':
+        if answer in ['', 'n', 'N']:
             print('\nThe README was not saved.')
             return
 
@@ -166,14 +168,14 @@ def generate_until_accepted(input_prompt, num_tokens):
 
         # Ask the user if he wants to save the generated readme.
         answer = input("\n\nDo you want to save the generated README? [y/N] ")
-        if answer == '' or answer == 'n' or answer == 'N':
+        if answer in ['', 'n', 'N']:
             print('\nThe generated README is not saved.')
             continue
-        elif answer == 'y' or answer == 'Y':
+        elif answer in ['y', 'Y']:
             save_readme(generated_readme)
 
         answer = input("\n\nDo you want to generate another README? [Y/n] ")
-        if answer == '' or answer == 'y' or answer == 'Y':
+        if answer in ['', 'y', 'Y']:
             continue
         break
 
@@ -181,8 +183,7 @@ def get_args():
     # Get the number of tokens as positional argument.
     parser = argparse.ArgumentParser()
     parser.add_argument("--tokens", type=int, default=1024)
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 if __name__ == '__main__':
     args = get_args()
